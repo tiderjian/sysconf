@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 class Sysconf extends Extension{
 
     const FORM_ITEM_RENDER_NAMESPACE = 'Encore\\Admin\\Sysconf\\FormItemRender\\';
+
     
     /**
      * @var string
@@ -112,6 +113,7 @@ class Sysconf extends Extension{
             $router->post("{$uri}/group", "{$controller}@groupStore");
             $router->delete("{$uri}/group/{group}", "{$controller}@groupDestroy");
 
+            $router->post("{$uri}/upload", "$controller@upload");
         });
     }
 
@@ -166,6 +168,14 @@ class Sysconf extends Extension{
          }
 
          $builder->build();
+    }
+
+    public static function url(string $path = null){
+        $url = url('/' . trim(config('admin.route.prefix', 'admin'), '/') . '/' . parent::config('name', 'sysconf'));
+        if(!is_null($path)){
+            $url .= '/' . trim($path, '/');
+        }
+        return $url;
     }
 
 }

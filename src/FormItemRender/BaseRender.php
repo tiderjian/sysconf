@@ -7,6 +7,8 @@ use Encore\Admin\Sysconf\Models\Sysconf;
 class BaseRender implements Buildable {
     
     protected $form;
+    protected $item;
+    protected $sysconf;
     
     public function __construct(Form $form, Sysconf $sysconf)
     {
@@ -15,8 +17,8 @@ class BaseRender implements Buildable {
     }
 
     public function build(){
-        $item = call_user_func_array([$this->form, lcfirst($this->sysconf->type)], [$this->sysconf->slug, $this->sysconf->title]);
-        $item->fill([$this->sysconf->slug => $this->sysconf->value]);
-        return $item;
+        $this->item = call_user_func_array([$this->form, lcfirst($this->sysconf->type)], [Sysconf::SLUG_PREFIX . $this->sysconf->slug, $this->sysconf->title]);
+        $this->item->fill([Sysconf::SLUG_PREFIX . $this->sysconf->slug => $this->sysconf->value]);
+        return $this->item;
     }
 }

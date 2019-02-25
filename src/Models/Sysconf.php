@@ -4,10 +4,14 @@ namespace Encore\Admin\Sysconf\Models;
 use Encore\Admin\Traits\AdminBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use mysql_xdevapi\Schema;
 
 class Sysconf extends Model{
 
     use AdminBuilder, SoftDeletes;
+
+    const SLUG_PREFIX = 'sysconf-';
 
     protected $casts =[
         'extra' => 'json'
@@ -34,11 +38,16 @@ class Sysconf extends Model{
 
     public function setAttribute($key, $value)
     {
-        if(key_exists($key, $this->attributes)){
+        if(self::getOriginalSlug($key) === false){
             return parent::setAttribute($key, $value);
         }
         $this->attributes['value'] = $value;
 
         return $this;
     }
+
+    public static function getOriginalSlug($slug){
+        return Str::startsWith($slug, self::SLUG_PREFIX) ? Str::after($slug, self::SLUG_PREFIX) : false;
+    }
+
 }

@@ -14,6 +14,8 @@ use Encore\Admin\Sysconf\Models\Group;
 use Encore\Admin\Sysconf\Models\Sysconf;
 use Encore\Admin\Sysconf\Models\SysconfGroup;
 use Encore\Admin\Widgets\Box;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Encore\Admin\Layout\Column;
 use Illuminate\Support\Facades\Input;
@@ -41,19 +43,42 @@ class SysconfController extends Controller
             });
     }
 
+    public function upload(){
+        $datas = Input::all();
+
+        foreach($datas as $k => $v){
+            if(!$v instanceof UploadedFile){
+                continue;
+            }
+
+            if ($validationMessages = $this->form()->validationMessages([$k => $v])) {
+                return response()->json(['error' => join("\r\n", $validationMessages->getMessages()[$k])], 400);
+            }
+
+            $form = $this->form();
+
+            $path = $form->builder()->field($k)->prepare($v);
+            return response()->json(['error' => $path]);
+        }
+    }
+
     public function store(){
         $data = Input::all();
         $sysconfs = Sysconf::get();
 
         foreach($data as $k => $v){
-            $conf = $sysconfs->where('slug', $k)->first();
+            $original = $k;
+            if(!($original = Sysconf::getOriginalSlug($k))){
+                continue;
+            }
+            $conf = $sysconfs->where('slug', $original)->first();
             if(is_null($conf)){
                 continue;
             }
             $this->form()->update($conf->id, [$k => $v]);
         }
 
-        return redirect(url("/admin/sysconf"));
+        return redirect(\Encore\Admin\Sysconf\Sysconf::url());
     }
 
     /**
@@ -61,14 +86,15 @@ class SysconfController extends Controller
      */
     protected function form(){
         $form = new Form(new Sysconf());
-        $form->setAction(url('/admin/sysconf'));
+        $form->setAction(\Encore\Admin\Sysconf\Sysconf::url());
         $form->disableReset();
         $form->disableCreatingCheck();
         $form->disableEditingCheck();
         $form->disableViewCheck();
         $form->builder()->getTools()->disableList();
 
-        $configUri = url('/admin/sysconf/config');
+
+        $configUri = \Encore\Admin\Sysconf\Sysconf::url("/config");
         $sysConfButton = <<<HTML
 <div class="btn-group pull-right" style="margin-right: 5px">
     <a href="{$configUri}" class="btn btn-sm btn-success" title="config manage">
@@ -180,7 +206,7 @@ HTML;
             $form->text('slug')->rules('required|alpha_dash|max:50');
             $form->sysconfSelect('type')->options(\Encore\Admin\Sysconf\Sysconf::getType())
                 ->rules('required|' . (string)Rule::in(array_keys(\Encore\Admin\Sysconf\Sysconf::getType())))
-            ->fillJsonEditor('extra', url("/admin/sysconf/config/create"));
+            ->fillJsonEditor('extra', \Encore\Admin\Sysconf\Sysconf::url("config/create"));
             $form->select('group')->options(SysconfGroup::pluck('title', 'id'))->rules('required');
 
             $json = \Encore\Admin\Sysconf\Sysconf::getJsonTemplate(app('request')->query("sysconfType", null));
@@ -220,7 +246,7 @@ HTML;
      */
     protected function groupGrid(){
         $grid = new Grid(new SysconfGroup(), function(Grid $grid){
-            $grid->setResource(url('/admin/sysconf/group'));
+            $grid->setResource(\Encore\Admin\Sysconf\Sysconf::url('group'));
             $grid->disablePagination();
             $grid->disableRowSelector();
             $grid->disableFilter();
@@ -252,7 +278,7 @@ HTML;
     protected function groupForm(){
         return SysconfGroup::form(function($form){
             $form->disableReset();
-            $form->builder()->setAction(url('/admin/sysconf/group'));
+            $form->builder()->setAction(\Encore\Admin\Sysconf\Sysconf::url('group'));
             $form->disableCreatingCheck();
             $form->disableEditingCheck();
             $form->disableViewCheck();
